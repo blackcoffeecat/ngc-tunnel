@@ -1,0 +1,78 @@
+{
+  "name": "ngc-tunnel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "server": "node build/bin/ngc-server.js",
+    "client": "node build/bin/ngc-client.js",
+    "build": "babel src --out-dir build",
+    "bundle": "pkg .",
+    "postinstall": "npm run build"
+  },
+  "bin": "build/bin/ngc-client.js",
+  "pkg": {
+    "compress": "Brotli",
+    "scripts": [
+      "build/*"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "fs-extra": "^10.0.0",
+    "get-port": "^5.1.1",
+    "p-limit": "^3.1.0",
+    "pkg": "^5.5.2",
+    "selfsigned": "^2.0.0",
+    "uuid": "^8.3.2",
+    "yocto-queue": "^0.1.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.17.3",
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/runtime": "^7.17.2",
+    "eslint": "^8.9.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "http-server": "^14.1.0",
+    "prettier": "^2.5.1"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "prettier",
+      "plugin:prettier/recommended"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "env": {
+      "node": true,
+      "es2021": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 12,
+      "sourceType": "module"
+    },
+    "rules": {
+      "no-use-before-define": [
+        "error",
+        {
+          "functions": false
+        }
+      ],
+      "no-unused-vars": "off",
+      "no-empty": "off",
+      "prettier/prettier": [
+        "error",
+        {
+          "printWidth": 100,
+          "bracketSpacing": false,
+          "arrowParens": "avoid"
+        }
+      ]
+    }
+  }
+}

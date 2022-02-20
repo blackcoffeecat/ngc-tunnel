@@ -14,7 +14,7 @@ export function createUdpSender({
   address,
   receiver,
   key,
-  timeout = 1e3,
+  timeout = 2e3,
   before,
   after,
 }) {
@@ -94,7 +94,7 @@ export function serveUdp({port}) {
   const servMap = {};
   const serv = dgram
     .createSocket('udp4')
-    .bind(port)
+    .bind(port, '0.0.0.0')
     .once('listening', () => console.log('UDP server listening on port', port))
     .on('message', (msg, {port, address}) => {
       if (!msg?.length) return;
@@ -227,7 +227,6 @@ export function connectUdp({port, host, targetHost, serverPort, targetPort}) {
       key,
       port,
       address,
-      timeout: 100,
     });
 
     proxy.on('data', send).once('close', end);

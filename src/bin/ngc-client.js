@@ -48,8 +48,8 @@ setInterval(() => {}, 1e3);
 
 async function findMethod() {
   let methods = [
-    {name: 'tls', port: TLS_PORT, connect: connectTls},
     {name: 'udp', port: UDP_PORT, connect: connectUdp},
+    {name: 'tls', port: TLS_PORT, connect: connectTls},
     {name: 'tcp', port: TCP_PORT, connect: connectTcp},
   ];
 

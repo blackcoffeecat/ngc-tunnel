@@ -18,9 +18,9 @@ export async function ping(host, port, connect) {
   let targetPort = await getPort();
   let server = tcp.createServer(onCon).listen(targetPort);
   await once.call(server, 'listening');
-  let con = connect({port, host, serverPort: 8999, targetHost: '127.0.0.1', targetPort});
+  let con = connect({port, host, serverPort: 9999, targetHost: '127.0.0.1', targetPort});
   await sleep(2e3);
-  let client = tcp.connect(8999, host);
+  let client = tcp.connect(9999, host);
 
   async function onCon(income) {
     await once.call(income, 'data').catch(e => e);

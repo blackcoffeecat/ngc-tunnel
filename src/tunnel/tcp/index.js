@@ -45,7 +45,9 @@ export function serveTcp({ssl, port, ...options} = {}) {
     options = {key, cert, ...options};
   }
 
-  options.allowHalfOpen ??= true;
+  if (options.allowHalfOpen == null) {
+    options.allowHalfOpen = true;
+  }
 
   function closePort(port) {
     if (servMap[port]) {

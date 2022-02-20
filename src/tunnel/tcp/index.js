@@ -31,7 +31,7 @@ export function serveTcp({ssl, port, ...options} = {}) {
   let servMap = {};
   let net = ssl ? tls : tcp;
   if (ssl) {
-    const {private: key, cert} = generate();
+    const {private: key, cert} = generate(null, {keySize: 2048, algorithm: 'sha256', days: '30d'});
     options = {key, cert, ...options};
   }
 

@@ -2,8 +2,8 @@
   "name": "ngc-tunnel",
   "license": "MIT",
   "version": "1.0.0",
-  "type": "module",
   "main": "build/bin/ngc-server.js",
+  "module": "src/bin/ngc-server.js",
   "scripts": {
     "server": "node build/bin/ngc-server.js",
     "client": "node build/bin/ngc-client.js",

@@ -1,6 +1,7 @@
 import {EventEmitter} from 'events';
 import getPort from 'get-port';
 import tcp from 'net';
+import pLimit from 'p-limit';
 import {promisify} from 'util';
 
 export function hasProp(object, key) {
@@ -18,7 +19,7 @@ export async function ping(host, port, connect) {
   let server = tcp.createServer(onCon).listen(targetPort);
   await once.call(server, 'listening');
   let con = connect({port, host, serverPort: 8999, targetHost: '127.0.0.1', targetPort});
-  await sleep(5e3);
+  await sleep(2e3);
   let client = tcp.connect(8999, host);
 
   async function onCon(income) {
@@ -57,14 +58,9 @@ export async function ping(host, port, connect) {
         server = null;
       }
       if (con) {
-        if (con.destroy) {
-          con.write(`close:8999`);
-          con.destroy();
+        closeCon(con, () => {
           con = null;
-        } else {
-          con.close();
-          con = null;
-        }
+        });
       }
     }
   });
@@ -82,5 +78,59 @@ export function configProxy(proxySetting, extra = {}) {
   targetHost = targetHost || '127.0.0.1';
   serverPort = parseInt(serverPort, 10);
   targetPort = parseInt(targetPort, 10);
-  return {serverPort, targetPort, targetHost, ...extra};
+  return {serverPort, targetPort, targetHost, proxySetting, ...extra};
+}
+
+let exitQ = pLimit(1);
+let exitResolve;
+let handlers = [];
+let exitPromise = new Promise(resolve => {
+  exitResolve = callback => {
+    resolve();
+    exitQ(callback);
+    exitResolve = () => {};
+  };
+});
+
+exitQ(() => exitPromise);
+exitQ(async () => {
+  for (let fn of handlers) {
+    try {
+      await fn();
+    } catch {}
+  }
+});
+
+['exit', 'beforeExit', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM', 'SIGBREAK'].forEach(event => {
+  process.on(event, sign => {
+    exitResolve(() => {
+      console.log(`exit by ${event} sign: ${sign}`);
+      process.exit();
+    });
+  });
+});
+
+export function onExit(fn) {
+  let wrapFn = () => fn?.();
+  handlers.push(wrapFn);
+  let pulled = false;
+  return () => {
+    if (pulled) return;
+    pulled = true;
+    handlers.splice(handlers.indexOf(fn), 1);
+  };
+}
+
+const closeSymbol = Symbol('close');
+
+export function forClose(con, fn) {
+  con[closeSymbol] = fn;
+}
+
+export function closeCon(con, callback) {
+  if (typeof callback !== 'function') {
+    return new Promise(resolve => closeCon(con, resolve));
+  }
+
+  (con[closeSymbol] || callback)(callback);
 }

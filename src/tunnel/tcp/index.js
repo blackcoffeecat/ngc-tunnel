@@ -2,7 +2,7 @@ import tcp from 'net';
 import {generate} from 'selfsigned';
 import tls from 'tls';
 import {v4 as uuid} from 'uuid';
-import {hasProp} from '../common.js';
+import {closeCon, forClose, onExit} from '../common.js';
 
 export function connectTcp({host, port, serverPort, targetHost, targetPort, ssl}) {
   let net = ssl ? tls : tcp;
@@ -12,7 +12,17 @@ export function connectTcp({host, port, serverPort, targetHost, targetPort, ssl}
 
   return net
     .connect({host, port, rejectUnauthorized: false})
+    .once('close', function () {
+      this.emit('error', new Error('connection closed'));
+    })
     .once('ready', function () {
+      onExit(() => closeCon(this));
+      forClose(this, callback => {
+        this.write('close:' + serverPort, () => {
+          this.destroy();
+          callback();
+        });
+      });
       this.write('open:' + serverPort);
     })
     .on('data', openKey => {
@@ -37,8 +47,17 @@ export function serveTcp({ssl, port, ...options} = {}) {
 
   options.allowHalfOpen ??= true;
 
+  function closePort(port) {
+    if (servMap[port]) {
+      console.log('tcp closeServer', port);
+      servMap[port].close();
+      servMap[port] = null;
+    }
+  }
+
   function createServe(cli, port) {
-    console.log('tcp createServer', port);
+    console.log('tcp createServer', port, cli.address());
+    closePort(port);
 
     servMap[port] = tcp
       .createServer({pauseOnConnect: true, allowHalfOpen: true}, con => {
@@ -56,7 +75,7 @@ export function serveTcp({ssl, port, ...options} = {}) {
 
   function handleCon(key, target) {
     // console.log('handleCon', key);
-    if (!hasProp(conMap, key)) return;
+    if (!conMap[key]) return;
 
     const {cli, con} = conMap[key];
     if (cli.destroyed) return con.destroy();
@@ -75,11 +94,9 @@ export function serveTcp({ssl, port, ...options} = {}) {
 
       if (cmd.startsWith('close:')) {
         const [, port] = cmd.split(':');
-        if (port && servMap[port]) {
+        if (port) {
           client.destroy();
-          console.log('tcp closeServer', port);
-          servMap[port].close();
-          servMap[port] = null;
+          closePort(port);
         }
 
         return;

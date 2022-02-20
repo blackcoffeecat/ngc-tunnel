@@ -4,7 +4,7 @@ import tcp from 'net';
 import pLimit from 'p-limit';
 import {v4 as uuid} from 'uuid';
 import Queue from 'yocto-queue';
-import {hasProp} from '../common.js';
+import {closeCon, forClose, hasProp, onExit} from '../common.js';
 
 EventEmitter.setMaxListeners(0);
 
@@ -138,7 +138,7 @@ export function serveUdp({port}) {
   }
 
   function handlePull(port, handler) {
-    if (hasProp(servMap, port)) {
+    if (servMap[port]) {
       const {renew, que} = servMap[port];
       renew();
       while (que.size) handler(que.dequeue());
@@ -206,11 +206,14 @@ export function connectUdp({port, host, targetHost, serverPort, targetPort}) {
     })
     .once('close', () => {
       clearInterval(interval);
-      const me = dgram.createSocket('udp4');
-      me.send(`close:${serverPort}\n`, port, host, () => {
-        me.close();
-      });
     });
+
+  forClose(client, callback => {
+    const me = dgram.createSocket('udp4');
+    me.send(`close:${serverPort}\n`, port, host, callback);
+  });
+
+  onExit(() => closeCon(client));
 
   return client;
 

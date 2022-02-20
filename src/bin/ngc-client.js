@@ -1,6 +1,14 @@
 import 'dotenv/config';
 import pLimit from 'p-limit';
-import {configProxy, connectTcp, connectTls, connectUdp, ping, sleep} from '../tunnel/index.js';
+import {
+  closeCon,
+  configProxy,
+  connectTcp,
+  connectTls,
+  connectUdp,
+  ping,
+  sleep,
+} from '../tunnel/index.js';
 
 let {TCP_PORT, TLS_PORT, UDP_PORT, HOST = '127.0.0.1', TARGETS} = process.env;
 TCP_PORT = parseInt(TCP_PORT || '0', 10);
@@ -20,12 +28,23 @@ const main = async () => {
     .filter(Boolean)
     .forEach(config => {
       try {
-        connect(configProxy(config, {port, host: HOST}));
+        setupCon(connect, configProxy(config, {port, host: HOST}));
       } catch (e) {
         console.log(`error on create ${config} (${e.message})`);
       }
     });
 };
+
+function setupCon(connect, config) {
+  const con = connect(config).once('error', reconnect);
+  function reconnect() {
+    closeCon(con);
+    console.log('reconnect in 10s', config.proxySetting);
+    setTimeout(setupCon, 10e3, connect, config);
+  }
+}
+
+setInterval(() => {}, 1e3);
 
 async function findMethod() {
   let methods = [
